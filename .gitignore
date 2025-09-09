@@ -1,2 +1,6 @@
 syn
 .env
+.env.*
+__pycache__
+worth_dataset.jsonl*
+hask_gpt_oss_(20b)_fine_tuning.md
