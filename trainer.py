@@ -10,6 +10,7 @@ dtype = None
 unsloth_gptoss_id = "unsloth/gpt-oss-20b"
 hf_model_id = "bayang/sssd-finetuned-gpt-oss-20b-theta"
 
+print("Loading model...")
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = unsloth_gptoss_id,
     dtype = dtype, # None for auto detection
@@ -19,6 +20,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 
 
+print("Applying PEFT...")
 model = FastLanguageModel.get_peft_model(
     model,
     r = 8, # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
@@ -34,23 +36,21 @@ model = FastLanguageModel.get_peft_model(
     loftq_config = None, # And LoftQ
 )
 
+
 def formatting_prompts_func(examples):
     convos = examples["messages"]
     texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False) for convo in convos]
     return { "text" : texts, }
 
 
-
+print("Loading dataset...")
 dataset = load_dataset("bayang/sssd", split="train")
 
-
-"""To format our dataset, we will apply our version of the GPT OSS prompt"""
-
-
+print("Standardizing dataset...")
 dataset = standardize_sharegpt(dataset)
 dataset = dataset.map(formatting_prompts_func, batched = True,)
 
-
+print("Creating trainer and training...")
 trainer = SFTTrainer(
     model = model,
     tokenizer = tokenizer,
@@ -72,5 +72,9 @@ trainer = SFTTrainer(
     ),
 )
 
+print("Training...")
+trainer_stats = trainer.train()
+
+print("Pushing model to hub...")
 model.push_to_hub_merged(hf_model_id, tokenizer=tokenizer, token="hf_xxx")
 
